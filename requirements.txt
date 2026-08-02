@@ -10,4 +10,4 @@ platformdirs==4.11.0
 pytokens==0.4.1
 sqlparse==0.5.5
 tzdata==2026.3
-djangorestframework~=3.17.1
+djangorestframework==3.17.1

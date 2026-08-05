@@ -9,6 +9,13 @@ from books.models import Book
 from books.serializers import BookSerializer
 
 BOOKS_URL = reverse("books:book-list")
+DATA = {
+            "title": "New Book",
+            "author": "New Author",
+            "cover": Book.CoverChoices.HARD,
+            "inventory": 4,
+            "daily_fee": Decimal("2.75"),
+        }
 
 def detail_url(book_id):
     return reverse(
@@ -28,7 +35,7 @@ def sample_book(**params):
     return Book.objects.create(**defaults)
 
 
-class UnauthenticatedBookAPITests(APITestCase):
+class PublicBookApiTests(APITestCase):
     def setUp(self):
         self.book = sample_book()
 
@@ -49,15 +56,7 @@ class UnauthenticatedBookAPITests(APITestCase):
         self.assertEqual(response.data, serializer.data)
 
     def test_auth_required_for_book_create(self):
-        data = {
-            "title": "New Book",
-            "author": "New Author",
-            "cover": Book.CoverChoices.HARD,
-            "inventory": 4,
-            "daily_fee": Decimal("2.75"),
-        }
-
-        response = self.client.post(BOOKS_URL, data)
+        response = self.client.post(BOOKS_URL, DATA)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_auth_required_for_book_update(self):
@@ -68,7 +67,33 @@ class UnauthenticatedBookAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-class AuthenticatedBookAPITests(APITestCase):
+
+class PrivateBookApiTests(APITestCase):
+    """Authenticated non-admin user."""
+
+    def setUp(self):
+        self.book = sample_book()
+        self.user = get_user_model().objects.create_user(
+            email="test@test.com",
+            password="TestPass12345",
+        )
+        self.client.force_authenticate(self.user)
+
+    def test_auth_required_for_book_create(self):
+        response = self.client.post(BOOKS_URL, DATA)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_auth_required_for_book_update(self):
+        response = self.client.patch(
+            detail_url(self.book.id),
+            {"title": "Updated Title"}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class AdminBookApiTests(APITestCase):
+
     def setUp(self):
         self.book = sample_book()
         self.user = get_user_model().objects.create_superuser(
@@ -78,15 +103,7 @@ class AuthenticatedBookAPITests(APITestCase):
         self.client.force_authenticate(self.user)
 
     def test_book_create(self):
-        data = {
-            "title": "New Book",
-            "author": "New Author",
-            "cover": Book.CoverChoices.HARD,
-            "inventory": 4,
-            "daily_fee": Decimal("2.75"),
-        }
-
-        response = self.client.post(BOOKS_URL, data)
+        response = self.client.post(BOOKS_URL, DATA)
 
         book = Book.objects.get(id=response.data["id"])
         serializer = BookSerializer(book)

@@ -41,4 +41,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         return queryset.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        if self.request.user.is_staff and serializer.validated_data.get("user"):
+            serializer.save()
+        else:
+            serializer.save(user=self.request.user)

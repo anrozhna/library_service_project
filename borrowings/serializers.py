@@ -29,3 +29,12 @@ class BorrowingCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Borrowing
         fields = ("book", "expected_return_date")
+
+
+class AdminBorrowingCreateSerializer(BorrowingCreateSerializer):
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=get_user_model().objects.all(),
+    )
+
+    class Meta(BorrowingCreateSerializer.Meta):
+        fields = BorrowingCreateSerializer.Meta.fields + ("user",)

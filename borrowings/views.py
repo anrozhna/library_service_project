@@ -7,22 +7,30 @@ from borrowings.serializers import (
     BorrowingSerializer,
     BorrowingListSerializer,
     BorrowingDetailSerializer,
+    BorrowingCreateSerializer,
+    AdminBorrowingCreateSerializer,
 )
 
 
 class BorrowingViewSet(viewsets.ModelViewSet):
-    queryset = Borrowing.objects.all().select_related("book", "user")
+    queryset = Borrowing.objects.select_related("book", "user")
     serializer_class = BorrowingSerializer
     authentication_classes = (JWTAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get_serializer_class(self):
-        serializer = self.serializer_class
         if self.action == "list":
-            serializer = BorrowingListSerializer
+            return BorrowingListSerializer
+
         elif self.action == "retrieve":
-            serializer = BorrowingDetailSerializer
-        return serializer
+            return BorrowingDetailSerializer
+
+        elif self.action == "create":
+            if self.request.user.is_staff:
+                return AdminBorrowingCreateSerializer
+            return BorrowingCreateSerializer
+
+        return BorrowingSerializer
 
     def get_queryset(self):
         queryset = self.queryset

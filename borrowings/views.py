@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from borrowings.models import Borrowing
@@ -13,6 +14,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
     queryset = Borrowing.objects.all().select_related("book", "user")
     serializer_class = BorrowingSerializer
     authentication_classes = (JWTAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
     def get_serializer_class(self):
         serializer = self.serializer_class
@@ -29,3 +31,6 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             return queryset
 
         return queryset.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)

@@ -1,6 +1,6 @@
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from books.models import Book
 from books.serializers import BookSerializer
 from borrowings.models import Borrowing
 from users.serializers import UserSerializer
@@ -24,3 +24,8 @@ class BorrowingListSerializer(BorrowingSerializer):
 
 class BorrowingDetailSerializer(BorrowingListSerializer):
     user = UserSerializer(read_only=True)
+
+class BorrowingCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Borrowing
+        fields = ("book", "expected_return_date")

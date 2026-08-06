@@ -1,5 +1,3 @@
-import email
-
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -8,14 +6,15 @@ from rest_framework.reverse import reverse
 from rest_framework_simplejwt.tokens import RefreshToken
 
 USER_DATA = {
-            "email": "test@test.com",
-            "password": "TestPass12345",
-        }
+    "email": "test@test.com",
+    "password": "TestPass12345",
+}
 
 REGISTER_URL = reverse("users:register")
 TOKEN_URL = reverse("users:token_obtain_pair")
 TOKEN_REFRESH_URL = reverse("users:token_refresh")
 ME_URL = reverse("users:manage")
+
 
 class PublicUserApiTests(APITestCase):
     def test_create_user(self):

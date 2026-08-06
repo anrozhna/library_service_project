@@ -7,18 +7,14 @@ from rest_framework.test import APITestCase
 
 from books.models import Book
 from borrowings.models import Borrowing
-from borrowings.serializers import (
-    BorrowingListSerializer,
-    BorrowingDetailSerializer
-)
+from borrowings.serializers import BorrowingListSerializer, BorrowingDetailSerializer
 
 BORROWINGS_URL = reverse("borrowings:borrowing-list")
 
+
 def detail_url(borrowing_id):
-    return reverse(
-        "borrowings:borrowing-detail",
-        kwargs={"pk": borrowing_id}
-    )
+    return reverse("borrowings:borrowing-detail", kwargs={"pk": borrowing_id})
+
 
 def sample_book(**params):
     defaults = {
@@ -31,6 +27,7 @@ def sample_book(**params):
     defaults.update(params)
 
     return Book.objects.create(**defaults)
+
 
 def return_url(borrowing_id):
     return f"/borrowings/{borrowing_id}/return/"
@@ -186,8 +183,6 @@ class BorrowingCreateApiTests(APITestCase):
             "book": self.book.id,
         }
         response = self.client.post(BORROWINGS_URL, payload)
-        print(response.status_code)
-        print(response.data)
         borrowing = Borrowing.objects.get(id=response.data["id"])
         self.assertEqual(borrowing.user, self.user)
 

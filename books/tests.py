@@ -10,18 +10,17 @@ from books.serializers import BookSerializer
 
 BOOKS_URL = reverse("books:book-list")
 DATA = {
-            "title": "New Book",
-            "author": "New Author",
-            "cover": Book.CoverChoices.HARD,
-            "inventory": 4,
-            "daily_fee": Decimal("2.75"),
-        }
+    "title": "New Book",
+    "author": "New Author",
+    "cover": Book.CoverChoices.HARD,
+    "inventory": 4,
+    "daily_fee": Decimal("2.75"),
+}
+
 
 def detail_url(book_id):
-    return reverse(
-        "books:book-detail",
-        kwargs={"pk": book_id}
-    )
+    return reverse("books:book-detail", kwargs={"pk": book_id})
+
 
 def sample_book(**params):
     defaults = {
@@ -61,8 +60,7 @@ class PublicBookApiTests(APITestCase):
 
     def test_auth_required_for_book_update(self):
         response = self.client.patch(
-            detail_url(self.book.id),
-            {"title": "Updated Title"}
+            detail_url(self.book.id), {"title": "Updated Title"}
         )
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
@@ -85,8 +83,7 @@ class PrivateBookApiTests(APITestCase):
 
     def test_auth_required_for_book_update(self):
         response = self.client.patch(
-            detail_url(self.book.id),
-            {"title": "Updated Title"}
+            detail_url(self.book.id), {"title": "Updated Title"}
         )
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
@@ -114,8 +111,7 @@ class AdminBookApiTests(APITestCase):
 
     def test_book_update(self):
         response = self.client.patch(
-            detail_url(self.book.id),
-            {"title": "Updated Title"}
+            detail_url(self.book.id), {"title": "Updated Title"}
         )
 
         self.book.refresh_from_db()

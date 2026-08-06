@@ -1,5 +1,9 @@
-from rest_framework import viewsets
+from datetime import timezone
+
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from borrowings.models import Borrowing
@@ -45,3 +49,21 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             serializer.save()
         else:
             serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=["POST"], url_path="return")
+    def return_borrowing(self, request, pk=None):
+        borrowing = self.get_object()
+
+        if borrowing.actual_return_date is not None:
+            return Response(
+                {"detail": "This borrowing has already been returned."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        borrowing.actual_return_date = timezone.now().date()
+        borrowing.save()
+
+        return Response(
+            {"detail": "Borrowing successfully returned."},
+            status=status.HTTP_200_OK,
+        )

@@ -1,3 +1,8 @@
 from django.contrib import admin
 
-# Register your models here.
+from borrowings.models import Borrowing
+
+
+@admin.register(Borrowing)
+class BorrowingAdmin(admin.ModelAdmin):
+    list_select_related = ("book", "user")

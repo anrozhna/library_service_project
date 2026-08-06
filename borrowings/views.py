@@ -63,6 +63,10 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         borrowing.actual_return_date = timezone.now().date()
         borrowing.save()
 
+        book = borrowing.book
+        book.inventory += 1
+        book.save()
+
         return Response(
             {"detail": "Borrowing successfully returned."},
             status=status.HTTP_200_OK,

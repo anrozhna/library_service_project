@@ -183,8 +183,6 @@ class BorrowingCreateApiTests(APITestCase):
             "book": self.book.id,
         }
         response = self.client.post(BORROWINGS_URL, payload)
-        print(response.status_code)
-        print(response.data)
         borrowing = Borrowing.objects.get(id=response.data["id"])
         self.assertEqual(borrowing.user, self.user)
 

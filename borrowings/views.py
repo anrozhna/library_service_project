@@ -14,6 +14,7 @@ from borrowings.serializers import (
     BorrowingCreateSerializer,
     AdminBorrowingCreateSerializer,
 )
+from borrowings.telegram_notifications import send_telegram_message
 
 
 class BorrowingViewSet(viewsets.ModelViewSet):
@@ -46,9 +47,18 @@ class BorrowingViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         if self.request.user.is_staff and serializer.validated_data.get("user"):
-            serializer.save()
+            borrowing = serializer.save()
         else:
-            serializer.save(user=self.request.user)
+            borrowing = serializer.save(user=self.request.user)
+
+        message = (
+            f"📚 New borrowing created!\n"
+            f"Book: {borrowing.book.title}\n"
+            f"User: {borrowing.user.email}\n"
+            f"Borrow date: {borrowing.borrow_date}\n"
+            f"Expected return: {borrowing.expected_return_date}"
+        )
+        send_telegram_message(message)
 
     @action(detail=True, methods=["POST"], url_path="return")
     def return_borrowing(self, request, pk=None):

@@ -250,7 +250,7 @@ class BorrowingReturnApiTests(APITestCase):
         self.client.post(return_url(self.borrowing.id))
 
         self.book.refresh_from_db()
-        self.assertEqual(self.book.inventory, 3)  # не 4
+        self.assertEqual(self.book.inventory, 3)
 
     def test_unauthenticated_user_cannot_return_borrowing(self):
         self.client.force_authenticate(user=None)

@@ -31,7 +31,7 @@ class BorrowingDetailSerializer(BorrowingListSerializer):
 class BorrowingCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Borrowing
-        fields = ("book", "expected_return_date")
+        fields = ("id", "book", "expected_return_date")
 
     @staticmethod
     def validate_book(value):

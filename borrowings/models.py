@@ -18,3 +18,6 @@ class Borrowing(models.Model):
         on_delete=models.CASCADE,
         related_name="borrowings",
     )
+
+    def __str__(self):
+        return f"{self.book.title} borrowing: {self.expected_return_date}"

@@ -1,0 +1,19 @@
+[run]
+source = .
+omit =
+    */venv/*
+    */migrations/*
+    manage.py
+    */settings.py
+    */urls.py
+    */wsgi.py
+    */asgi.py
+    */tests*
+    */admin.py
+    */apps.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError

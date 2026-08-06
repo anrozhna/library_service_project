@@ -1,14 +1,16 @@
 # Library Service Project
  
-Django REST Framework API for managing a library's books, users, and borrowings, with Telegram notifications.
+Django REST Framework API for managing a library's books, users, and borrowings, with Telegram notifications, Docker support, and interactive Swagger documentation.
  
 ## Table of Contents
  
 - [Features Implemented](#features-implemented)
 - [Tech Stack](#tech-stack)
 - [Installation](#installation)
+- [Running with Docker](#running-with-docker)
 - [Environment Variables](#environment-variables)
 - [API Endpoints](#api-endpoints)
+- [API Documentation (Swagger)](#api-documentation-swagger)
 - [Telegram Notifications Setup](#telegram-notifications-setup)
 - [Running Tests](#running-tests)
 ---
@@ -31,7 +33,7 @@ Django REST Framework API for managing a library's books, users, and borrowings,
 - `users/me/` endpoint to retrieve and update the current user's profile
 ### 📖 Borrowings Service
 - `Borrowing` model (borrow date, expected return date, actual return date, book, user)
-- List and detail endpoints
+- List and detail endpoints, filtered so non-admin users only see their own borrowings
 - Create endpoint with business logic:
   - Validates that the book has available inventory before creating a borrowing
   - Decreases book inventory by 1 on creation
@@ -40,9 +42,15 @@ Django REST Framework API for managing a library's books, users, and borrowings,
   - Sets the actual return date
   - Prevents returning the same borrowing twice
   - Increases book inventory by 1 on return
+- Optimized queries with `select_related("book", "user")` to avoid N+1 queries
 ### 🔔 Telegram Notifications
 - Helper function to send messages to a Telegram chat via the Bot API
 - Automatic notification sent to Telegram whenever a new borrowing is created
+### 📄 API Documentation
+- Interactive Swagger UI and Redoc documentation via `drf-spectacular`
+- Auto-generated OpenAPI 3 schema for all endpoints
+### 🐳 Docker
+- Containerized with Docker and Docker Compose for easy setup and deployment
 ---
  
 ## Tech Stack
@@ -50,11 +58,16 @@ Django REST Framework API for managing a library's books, users, and borrowings,
 - Python / Django
 - Django REST Framework
 - djangorestframework-simplejwt (JWT authentication)
+- drf-spectacular (Swagger / OpenAPI documentation)
 - python-dotenv (environment variable management)
 - requests (Telegram Bot API integration)
+- Docker / Docker Compose
+- SQLite (default database)
 ---
  
 ## Installation
+ 
+### Option 1 — Local (without Docker)
  
 ```bash
 git clone <repository-url>
@@ -73,6 +86,53 @@ Create a `.env` file in the project root based on `.env.sample` (see [Environmen
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
+```
+ 
+The API will be available at `http://127.0.0.1:8000`.
+ 
+### Option 2 — With Docker
+ 
+See [Running with Docker](#running-with-docker) below.
+ 
+---
+ 
+## Running with Docker
+ 
+### Prerequisites
+ 
+- [Docker Desktop](https://www.docker.com/products/docker-desktop) installed and running
+### Steps
+ 
+1. Create a `.env` file in the project root based on `.env.sample` (see [Environment Variables](#environment-variables)).
+   ⚠️ If any value in `.env` contains a `$` character (e.g. inside `DJANGO_SECRET_KEY`), escape it as `$$`, otherwise Docker Compose will try to interpret it as a variable substitution.
+2. Build and start the container:
+```bash
+   docker-compose up --build
+```
+ 
+3. The API will be available at:
+```
+   http://localhost:8000
+```
+ 
+   (not `http://0.0.0.0:8000` — that address is only meaningful inside the container)
+ 
+4. Create a superuser inside the running container:
+```bash
+   docker-compose exec app python manage.py createsuperuser
+```
+ 
+5. Stop the container:
+```bash
+   docker-compose down
+```
+ 
+### Useful commands
+ 
+```bash
+docker-compose logs app          # view logs
+docker-compose ps                # check container status
+docker-compose exec app python manage.py test   # run tests inside the container
 ```
  
 ---
@@ -114,10 +174,36 @@ See `.env.sample` for the template.
 ### Borrowings
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
-| GET | `/borrowings/` | Authenticated | List all borrowings (no per-user restriction yet — see Roadmap) |
+| GET | `/borrowings/` | Authenticated | List borrowings (own for regular users, all for admins) |
 | POST | `/borrowings/` | Authenticated | Create a new borrowing |
 | GET | `/borrowings/<id>/` | Authenticated (owner or admin) | Get borrowing details |
 | POST | `/borrowings/<id>/return/` | Authenticated | Return a borrowed book |
+ 
+### Documentation
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/schema/` | Raw OpenAPI 3 schema |
+| GET | `/api/schema/swagger-ui/` | Interactive Swagger UI |
+| GET | `/api/schema/redoc/` | Redoc documentation view |
+ 
+---
+ 
+## API Documentation (Swagger)
+ 
+The project uses [`drf-spectacular`](https://github.com/tfranzel/drf-spectacular) to auto-generate an OpenAPI 3 schema and serve interactive documentation.
+ 
+1. Start the server (locally or via Docker)
+2. Open in your browser:
+```
+   http://localhost:8000/api/schema/swagger-ui/
+```
+ 
+3. To test protected endpoints, obtain a JWT token via `/users/token/`, then click **Authorize** in the top-right corner of the Swagger UI and enter:
+```
+   Bearer <your-access-token>
+```
+ 
+A Redoc-style alternative view is also available at `/api/schema/redoc/`.
  
 ---
  
@@ -162,6 +248,8 @@ If the message arrives in your Telegram chat, the setup is complete.
  
 ## Running Tests
  
+### Locally
+ 
 ```bash
 python manage.py test
 ```
@@ -173,15 +261,10 @@ python manage.py test users
 python manage.py test borrowings
 ```
  
+### With Docker
+ 
+```bash
+docker-compose exec app python manage.py test
+```
+ 
 ---
- 
-## Roadmap / Not Yet Implemented
- 
-- [ ] Borrowings filtering by `is_active` and `user_id`
-- [ ] Daily overdue borrowings check with Telegram notifications
-- [ ] Payments service (list/detail endpoints)
-- [ ] Stripe payment session integration
-- [ ] Payment success/cancel URLs
-- [ ] FINE payments for overdue returns
-- [ ] Docker Compose setup
- 

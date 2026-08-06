@@ -145,3 +145,66 @@ class AdminBorrowingApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, serializer.data)
+
+
+class BorrowingCreateApiTests(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            email="user@test.com", password="testpass123"
+        )
+        self.client.force_authenticate(self.user)
+        self.book = sample_book(inventory=3)
+
+    def test_create_borrowing_success(self):
+        payload = {
+            "expected_return_date": (date.today() + timedelta(days=7)).isoformat(),
+            "book": self.book.id,
+        }
+        response = self.client.post(BORROWINGS_URL, payload)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(
+            Borrowing.objects.filter(book=self.book, user=self.user).exists()
+        )
+
+    def test_create_borrowing_decreases_book_inventory(self):
+        payload = {
+            "expected_return_date": (date.today() + timedelta(days=7)).isoformat(),
+            "book": self.book.id,
+        }
+        self.client.post(BORROWINGS_URL, payload)
+
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.inventory, 2)
+
+    def test_create_borrowing_attaches_current_user(self):
+        payload = {
+            "expected_return_date": (date.today() + timedelta(days=7)).isoformat(),
+            "book": self.book.id,
+        }
+        response = self.client.post(BORROWINGS_URL, payload)
+        print(response.status_code)
+        print(response.data)
+        borrowing = Borrowing.objects.get(id=response.data["id"])
+        self.assertEqual(borrowing.user, self.user)
+
+    def test_create_borrowing_with_zero_inventory_fails(self):
+        book = sample_book(inventory=0)
+        payload = {
+            "expected_return_date": (date.today() + timedelta(days=7)).isoformat(),
+            "book": book.id,
+        }
+        response = self.client.post(BORROWINGS_URL, payload)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_borrowing_does_not_decrease_inventory_on_failure(self):
+        book = sample_book(inventory=0)
+        payload = {
+            "expected_return_date": (date.today() + timedelta(days=7)).isoformat(),
+            "book": book.id,
+        }
+        self.client.post(BORROWINGS_URL, payload)
+
+        book.refresh_from_db()
+        self.assertEqual(book.inventory, 0)

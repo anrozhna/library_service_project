@@ -40,10 +40,18 @@ class BorrowingViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = self.queryset
 
-        if self.request.user.is_staff:
-            return queryset
+        if not self.request.user.is_staff:
+            queryset = queryset.filter(user=self.request.user)
 
-        return queryset.filter(user=self.request.user)
+        is_active = self.request.query_params.get("is_active", None)
+
+        if is_active is not None:
+            if is_active.lower() == "true":
+                queryset = queryset.filter(actual_return_date__isnull=True)
+            elif is_active.lower() == "false":
+                queryset = queryset.filter(actual_return_date__isnull=False)
+
+        return queryset
 
     def perform_create(self, serializer):
         if self.request.user.is_staff and serializer.validated_data.get("user"):

@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from rest_framework.reverse import reverse
 
 from books.models import Book
@@ -24,3 +25,22 @@ def sample_book(**params):
 
 def return_url(borrowing_id):
     return f"/borrowings/{borrowing_id}/return/"
+
+def sample_user(**params):
+    defaults = {
+        "email": "user@test.com",
+        "password": "testpass123",
+    }
+    defaults.update(params)
+
+    return get_user_model().objects.create_user(**defaults)
+
+
+def sample_superuser(**params):
+    defaults = {
+        "email": "admin@test.com",
+        "password": "adminpass123",
+    }
+    defaults.update(params)
+
+    return get_user_model().objects.create_superuser(**defaults)

@@ -5,14 +5,16 @@ from rest_framework import status
 from  rest_framework.test import APITestCase
 
 from borrowings.models import Borrowing
-from borrowings.tests.helpers import sample_book, return_url
+from borrowings.tests.helpers import (
+    sample_book,
+    return_url,
+    sample_user
+)
 
 
 class BorrowingReturnApiTests(APITestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create_user(
-            email="user@test.com", password="testpass123"
-        )
+        self.user = sample_user()
         self.client.force_authenticate(self.user)
 
         self.book = sample_book(inventory=2)

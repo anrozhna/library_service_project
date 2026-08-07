@@ -1,6 +1,5 @@
 from datetime import date, timedelta
 
-from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -12,7 +11,9 @@ from borrowings.serializers import (
 from borrowings.tests.helpers import (
     BORROWINGS_URL,
     sample_book,
-    detail_url
+    detail_url,
+    sample_user,
+    sample_superuser
 )
 
 
@@ -26,10 +27,7 @@ class PublicBorrowingApiTest(APITestCase):
 class PrivateBorrowingApiTest(APITestCase):
 
     def setUp(self):
-        self.user = get_user_model().objects.create_user(
-            email="user@test.com",
-            password="testpass123",
-        )
+        self.user = sample_user()
         self.client.force_authenticate(self.user)
 
         self.book = sample_book()
@@ -42,9 +40,8 @@ class PrivateBorrowingApiTest(APITestCase):
         )
 
     def test_list_only_own_borrowings(self):
-        other_user = get_user_model().objects.create_user(
+        other_user = sample_user(
             email="other@test.com",
-            password="testpass123",
         )
 
         Borrowing.objects.create(
@@ -71,7 +68,7 @@ class PrivateBorrowingApiTest(APITestCase):
         self.assertEqual(response.data, serializer.data)
 
     def test_cannot_retrieve_other_user_borrowing(self):
-        other_user = get_user_model().objects.create_user(
+        other_user = sample_user(
             email="other@test.com",
             password="testpass123",
         )
@@ -93,18 +90,12 @@ class PrivateBorrowingApiTest(APITestCase):
 
 class AdminBorrowingApiTests(APITestCase):
     def setUp(self):
-        self.admin = get_user_model().objects.create_superuser(
-            email="admin@test.com",
-            password="adminpass123",
-        )
+        self.admin = sample_superuser()
         self.client.force_authenticate(self.admin)
 
         book = sample_book()
 
-        user = get_user_model().objects.create_user(
-            email="user@test.com",
-            password="testpass123",
-        )
+        user = sample_user()
 
         Borrowing.objects.create(
             borrow_date=date.today(),

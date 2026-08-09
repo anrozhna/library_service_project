@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "books",
     "users",
     "borrowings",
+    "payments",
     "rest_framework",
     "rest_framework_simplejwt",
     "drf_spectacular",

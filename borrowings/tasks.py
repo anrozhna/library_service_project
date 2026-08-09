@@ -20,6 +20,10 @@ def check_overdue_borrowings():
     """Celery task: detect overdue borrowings (notification logic added next)."""
     overdue_borrowings = get_overdue_borrowings()
 
+    if not overdue_borrowings.exists():
+        send_telegram_message("No borrowings overdue today!")
+        return 0
+
     for borrowing in overdue_borrowings:
         message = (
             f"⚠️ Overdue borrowing!\n"

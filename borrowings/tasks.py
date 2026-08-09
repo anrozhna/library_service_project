@@ -19,4 +19,14 @@ def get_overdue_borrowings():
 def check_overdue_borrowings():
     """Celery task: detect overdue borrowings (notification logic added next)."""
     overdue_borrowings = get_overdue_borrowings()
+
+    for borrowing in overdue_borrowings:
+        message = (
+            f"⚠️ Overdue borrowing!\n"
+            f"Book: {borrowing.book.title}\n"
+            f"User: {borrowing.user.email}\n"
+            f"Expected return date: {borrowing.expected_return_date}"
+        )
+        send_telegram_message(message)
+
     return overdue_borrowings.count()

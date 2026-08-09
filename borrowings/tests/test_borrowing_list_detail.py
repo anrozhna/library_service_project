@@ -6,14 +6,13 @@ from rest_framework.test import APITestCase
 from borrowings.models import Borrowing
 from borrowings.serializers import (
     BorrowingListSerializer,
-    BorrowingDetailSerializer
+    BorrowingDetailSerializer,
 )
-from borrowings.tests.helpers import (
-    BORROWINGS_URL,
+from borrowings.tests.helpers import BORROWINGS_URL, detail_url
+from tests_helpers import (
     sample_book,
-    detail_url,
     sample_user,
-    sample_superuser
+    sample_superuser,
 )
 
 

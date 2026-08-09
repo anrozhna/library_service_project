@@ -1,9 +1,9 @@
-from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
-
 from rest_framework.reverse import reverse
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from tests_helpers import sample_user
 
 USER_DATA = {
     "email": "test@test.com",
@@ -18,14 +18,13 @@ ME_URL = reverse("users:manage")
 
 class PublicUserApiTests(APITestCase):
     def test_create_user(self):
-
         response = self.client.post(REGISTER_URL, USER_DATA)
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["email"], USER_DATA["email"])
 
     def test_create_token(self):
-        get_user_model().objects.create_user(**USER_DATA)
+        sample_user(**USER_DATA)
 
         response = self.client.post(TOKEN_URL, USER_DATA)
 
@@ -34,7 +33,7 @@ class PublicUserApiTests(APITestCase):
         self.assertIn("refresh", response.data)
 
     def test_create_token_invalid_credentials(self):
-        get_user_model().objects.create_user(**USER_DATA)
+        sample_user(**USER_DATA)
 
         response = self.client.post(
             TOKEN_URL,
@@ -47,7 +46,7 @@ class PublicUserApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_refresh_token(self):
-        user = get_user_model().objects.create_user(**USER_DATA)
+        user = sample_user(**USER_DATA)
 
         refresh = RefreshToken.for_user(user)
 
@@ -67,7 +66,7 @@ class PublicUserApiTests(APITestCase):
 
 class PrivateUserApiTests(APITestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create_user(**USER_DATA)
+        self.user = sample_user(**USER_DATA)
         self.client.force_authenticate(self.user)
 
     def test_retrieve_profile(self):

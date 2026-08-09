@@ -5,18 +5,13 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from borrowings.models import Borrowing
-from borrowings.tests.helpers import (
-    sample_book,
-    BORROWINGS_URL,
-    sample_user
-)
+from borrowings.tests.helpers import BORROWINGS_URL
+from tests_helpers import sample_book, sample_user
 
 
 class BorrowingCreateApiTests(APITestCase):
     def setUp(self):
-        self.telegram_patcher = patch(
-            "borrowings.views.send_telegram_message"
-        )
+        self.telegram_patcher = patch("borrowings.views.send_telegram_message")
         self.mock_send_telegram_message = self.telegram_patcher.start()
         self.addCleanup(self.telegram_patcher.stop)
 
@@ -103,9 +98,7 @@ class BorrowingCreateApiTests(APITestCase):
 
         payload = {
             "book": book.id,
-            "expected_return_date": (
-                    date.today() + timedelta(days=7)
-            ).isoformat(),
+            "expected_return_date": (date.today() + timedelta(days=7)).isoformat(),
         }
 
         response = self.client.post(BORROWINGS_URL, payload)

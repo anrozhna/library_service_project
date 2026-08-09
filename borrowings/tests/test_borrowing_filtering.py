@@ -1,12 +1,15 @@
 from datetime import timedelta, date
 
-from django.contrib.auth import get_user_model
 from rest_framework import status
-from  rest_framework.test import APITestCase
+from rest_framework.test import APITestCase
 
-from books.tests import sample_book
 from borrowings.models import Borrowing
-from borrowings.tests.helpers import BORROWINGS_URL, sample_superuser, sample_user
+from borrowings.tests.helpers import BORROWINGS_URL
+from tests_helpers import (
+    sample_book,
+    sample_user,
+    sample_superuser,
+)
 
 
 class BorrowingIsActiveFilterApiTests(APITestCase):
@@ -30,7 +33,7 @@ class BorrowingIsActiveFilterApiTests(APITestCase):
         )
 
     def test_filter_by_is_active_true_returns_only_active(self):
-        response = self.client.get(BORROWINGS_URL, {"is_active": True})
+        response = self.client.get(BORROWINGS_URL, {"is_active": "true"})
 
         ids = [record["id"] for record in response.data]
 
@@ -39,7 +42,7 @@ class BorrowingIsActiveFilterApiTests(APITestCase):
         self.assertNotIn(self.returned_borrowing.id, ids)
 
     def test_filter_by_is_active_false_returns_only_returned(self):
-        response = self.client.get(BORROWINGS_URL, {"is_active": False})
+        response = self.client.get(BORROWINGS_URL, {"is_active": "false"})
 
         ids = [record["id"] for record in response.data]
 
@@ -98,4 +101,3 @@ class BorrowingUserIdFilterApiTests(APITestCase):
         # user_id ignored for non-admins — only own borrowings returned
         self.assertIn(self.borrowing1.id, ids)
         self.assertNotIn(self.borrowing2.id, ids)
-

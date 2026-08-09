@@ -1,15 +1,11 @@
 from datetime import date, timedelta
 
-from django.contrib.auth import get_user_model
 from rest_framework import status
-from  rest_framework.test import APITestCase
+from rest_framework.test import APITestCase
 
 from borrowings.models import Borrowing
-from borrowings.tests.helpers import (
-    sample_book,
-    return_url,
-    sample_user
-)
+from borrowings.tests.helpers import return_url
+from tests_helpers import sample_user, sample_book
 
 
 class BorrowingReturnApiTests(APITestCase):

@@ -5,7 +5,7 @@ from django.test import TestCase
 
 from borrowings.models import Borrowing
 from borrowings.tasks import get_overdue_borrowings, check_overdue_borrowings
-from borrowings.tests.helpers import sample_book, sample_user
+from tests_helpers import sample_book, sample_user
 
 
 class GetOverdueBorrowingsTests(TestCase):

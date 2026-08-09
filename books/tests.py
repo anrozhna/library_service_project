@@ -7,6 +7,7 @@ from rest_framework.reverse import reverse
 
 from books.models import Book
 from books.serializers import BookSerializer
+from tests_helpers import sample_book
 
 BOOKS_URL = reverse("books:book-list")
 DATA = {
@@ -20,18 +21,6 @@ DATA = {
 
 def detail_url(book_id):
     return reverse("books:book-detail", kwargs={"pk": book_id})
-
-
-def sample_book(**params):
-    defaults = {
-        "title": "Sample Book",
-        "author": "Sample Author",
-        "cover": Book.CoverChoices.SOFT,
-        "inventory": 5,
-        "daily_fee": Decimal("1.50"),
-    }
-    defaults.update(params)
-    return Book.objects.create(**defaults)
 
 
 class PublicBookApiTests(APITestCase):

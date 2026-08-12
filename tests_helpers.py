@@ -54,6 +54,8 @@ def sample_payment(borrowing, **params):
         "status": Payment.StatusChoices.PENDING,
         "type": Payment.TypeChoices.PAYMENT,
         "borrowing": borrowing,
+        "session_id": "cs_test_sample123",
+        "session_url": "https://checkout.stripe.com/test-session",
         "money_to_pay": Decimal("14.00"),
     }
     defaults.update(params)

@@ -5,37 +5,19 @@ from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 
-from borrowings.models import Borrowing
-from payments.models import Payment
-from tests_helpers import sample_user, sample_book, sample_superuser
+from tests_helpers import (
+    sample_user,
+    sample_book,
+    sample_superuser,
+    sample_payment,
+    sample_borrowing
+)
 
 PAYMENTS_URL = reverse("payments:payment-list")
 
 
 def detail_url(payment_id):
     return reverse("payments:payment-detail", kwargs={"pk": payment_id})
-
-
-def sample_borrowing(user, book, **params):
-    defaults = {
-        "borrow_date": date.today(),
-        "expected_return_date": date.today() + timedelta(days=7),
-        "book": book,
-        "user": user,
-    }
-    defaults.update(params)
-    return Borrowing.objects.create(**defaults)
-
-
-def sample_payment(borrowing, **params):
-    defaults = {
-        "status": Payment.StatusChoices.PENDING,
-        "type": Payment.TypeChoices.PAYMENT,
-        "borrowing": borrowing,
-        "money_to_pay": Decimal("14.00"),
-    }
-    defaults.update(params)
-    return Payment.objects.create(**defaults)
 
 
 class UnauthenticatedPaymentApiTests(APITestCase):

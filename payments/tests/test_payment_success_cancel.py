@@ -1,5 +1,4 @@
 from datetime import date, timedelta
-from decimal import Decimal
 
 from rest_framework import status
 from rest_framework.reverse import reverse
@@ -24,15 +23,14 @@ class PaymentSuccessEndpointTests(APITestCase):
 
         self.book = sample_book()
         self.borrowing = sample_borrowing(
-            self.user, self.book,
+            self.user,
+            self.book,
             expected_return_date=date.today() + timedelta(days=7),
         )
         self.payment = sample_payment(self.borrowing)
 
     def test_success_marks_payment_as_paid(self):
-        response = self.client.get(
-            SUCCESS_URL, {"session_id": self.payment.session_id}
-        )
+        response = self.client.get(SUCCESS_URL, {"session_id": self.payment.session_id})
 
         self.payment.refresh_from_db()
 
@@ -53,9 +51,7 @@ class PaymentSuccessEndpointTests(APITestCase):
 
     def test_success_called_twice_does_not_error(self):
         self.client.get(SUCCESS_URL, {"session_id": self.payment.session_id})
-        response = self.client.get(
-            SUCCESS_URL, {"session_id": self.payment.session_id}
-        )
+        response = self.client.get(SUCCESS_URL, {"session_id": self.payment.session_id})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -70,7 +66,8 @@ class PaymentCancelEndpointTests(APITestCase):
 
         self.book = sample_book()
         self.borrowing = sample_borrowing(
-            self.user, self.book,
+            self.user,
+            self.book,
             expected_return_date=date.today() + timedelta(days=7),
         )
         self.payment = sample_payment(self.borrowing)

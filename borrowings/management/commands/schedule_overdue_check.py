@@ -27,6 +27,4 @@ class Command(BaseCommand):
                 self.style.SUCCESS("Scheduled task created successfully.")
             )
         else:
-            self.stdout.write(
-                self.style.WARNING("Scheduled task already exists.")
-            )
+            self.stdout.write(self.style.WARNING("Scheduled task already exists."))

@@ -23,7 +23,8 @@ class CalculateBorrowingTotalPriceTests(TestCase):
 
     def test_calculates_price_for_multiple_days(self):
         borrowing = sample_borrowing(
-            self.user, self.book,
+            self.user,
+            self.book,
             expected_return_date=date.today() + timedelta(days=7),
         )
 
@@ -33,7 +34,8 @@ class CalculateBorrowingTotalPriceTests(TestCase):
 
     def test_minimum_one_day_charged(self):
         borrowing = sample_borrowing(
-            self.user, self.book,
+            self.user,
+            self.book,
             expected_return_date=date.today(),
         )
 
@@ -47,7 +49,8 @@ class CreateStripeSessionTests(TestCase):
         self.user = sample_user()
         self.book = sample_book(daily_fee=Decimal("2.00"))
         self.borrowing = sample_borrowing(
-            self.user, self.book,
+            self.user,
+            self.book,
             expected_return_date=date.today() + timedelta(days=7),
         )
 
@@ -66,8 +69,7 @@ class CreateStripeSessionTests(TestCase):
 
         self.assertEqual(payment.session_id, "cs_test_123456")
         self.assertEqual(
-            payment.session_url,
-            "https://checkout.stripe.com/test-session"
+            payment.session_url, "https://checkout.stripe.com/test-session"
         )
         self.assertEqual(payment.status, Payment.StatusChoices.PENDING)
         self.assertEqual(payment.type, Payment.TypeChoices.PAYMENT)
@@ -105,6 +107,4 @@ class CreateStripeSessionTests(TestCase):
             cancel_url="http://testserver/payments/cancel/",
         )
 
-        self.assertTrue(
-            Payment.objects.filter(borrowing=self.borrowing).exists()
-        )
+        self.assertTrue(Payment.objects.filter(borrowing=self.borrowing).exists())

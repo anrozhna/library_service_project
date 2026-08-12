@@ -77,9 +77,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         success_url = self.request.build_absolute_uri(
             reverse("payments:payment-success")
         )
-        cancel_url = self.request.build_absolute_uri(
-            reverse("payments:payment-cancel")
-        )
+        cancel_url = self.request.build_absolute_uri(reverse("payments:payment-cancel"))
         create_stripe_session(borrowing, success_url, cancel_url)
 
         send_telegram_message(message)

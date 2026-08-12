@@ -1,6 +1,3 @@
-from datetime import date, timedelta
-from decimal import Decimal
-
 from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
@@ -10,7 +7,7 @@ from tests_helpers import (
     sample_book,
     sample_superuser,
     sample_payment,
-    sample_borrowing
+    sample_borrowing,
 )
 
 PAYMENTS_URL = reverse("payments:payment-list")

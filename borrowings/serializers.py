@@ -6,7 +6,25 @@ from borrowings.models import Borrowing
 from users.serializers import UserSerializer
 
 
+class PaymentNestedSerializer(serializers.Serializer):
+    """Lightweight payment representation nested inside
+    Borrowing details to avoid circular imports."""
+
+    id = serializers.IntegerField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    type = serializers.CharField(read_only=True)
+    session_url = serializers.URLField(read_only=True)
+    money_to_pay = serializers.DecimalField(
+        max_digits=8, decimal_places=2, read_only=True
+    )
+
+
 class BorrowingSerializer(serializers.ModelSerializer):
+    payments = PaymentNestedSerializer(
+        read_only=True,
+        many=True,
+    )
+
     class Meta:
         model = Borrowing
         fields = (
@@ -16,6 +34,7 @@ class BorrowingSerializer(serializers.ModelSerializer):
             "actual_return_date",
             "book",
             "user",
+            "payments",
         )
 
 

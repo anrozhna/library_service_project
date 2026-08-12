@@ -32,7 +32,7 @@ class PaymentViewSet(
 
         return queryset
 
-    @action(detail=False, methods=["GET"], url_path="success")
+    @action(detail=False, methods=["GET"], url_path="success", url_name="success")
     def success(self, request):
         session_id = request.query_params.get("session_id")
 
@@ -64,7 +64,7 @@ class PaymentViewSet(
             status=status.HTTP_200_OK,
         )
 
-    @action(detail=False, methods=["GET"], url_path="cancel")
+    @action(detail=False, methods=["GET"], url_path="cancel", url_name="cancel")
     def cancel(self, request):
         session_id = request.query_params.get("session_id")
 

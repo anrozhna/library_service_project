@@ -1,3 +1,4 @@
+from django.urls import reverse
 from django.utils import timezone
 
 from rest_framework import viewsets, status
@@ -73,8 +74,12 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             f"Expected return: {borrowing.expected_return_date}"
         )
 
-        success_url = self.request.build_absolute_uri("/payments/success/")
-        cancel_url = self.request.build_absolute_uri("/payments/cancel/")
+        success_url = self.request.build_absolute_uri(
+            reverse("payments:payment-success")
+        )
+        cancel_url = self.request.build_absolute_uri(
+            reverse("payments:payment-cancel")
+        )
         create_stripe_session(borrowing, success_url, cancel_url)
 
         send_telegram_message(message)

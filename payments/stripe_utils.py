@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import stripe
 from django.conf import settings
 
@@ -13,6 +15,14 @@ def calculate_borrowing_total_price(borrowing):
 
     return days_to_pay * borrowing.book.daily_fee
 
+def calculate_fine_amount(borrowing):
+    """Calculate the fine amount for an overdue return."""
+    overdue_days = (borrowing.actual_return_date - borrowing.expected_return_date).days
+    overdue_days = max(overdue_days, 1)
+
+    fine_multiplier = Decimal(str(settings.FINE_MULTIPLIER))
+
+    return overdue_days * borrowing.book.daily_fee * fine_multiplier
 
 def create_stripe_session(borrowing, success_url, cancel_url):
     """Create a Stripe Checkout Session for a given borrowing."""

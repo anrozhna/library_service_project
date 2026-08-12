@@ -63,3 +63,22 @@ class PaymentViewSet(
             {"detail": "Payment successful. Thank you!"},
             status=status.HTTP_200_OK,
         )
+
+    @action(detail=False, methods=["GET"], url_path="cancel")
+    def cancel(self, request):
+        session_id = request.query_params.get("session_id")
+
+        response_data = {
+            "detail": (
+                "Payment was not completed. Your Stripe session is still "
+                "valid for 24 hours — you can complete the payment using "
+                "the link below."
+            )
+        }
+
+        if session_id:
+            payment = Payment.objects.filter(session_id=session_id).first()
+            if payment:
+                response_data["session_url"] = payment.session_url
+
+        return Response(response_data, status=status.HTTP_200_OK)

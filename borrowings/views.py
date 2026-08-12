@@ -16,7 +16,7 @@ from borrowings.serializers import (
     AdminBorrowingCreateSerializer,
 )
 from borrowings.telegram_notifications import send_telegram_message
-from payments.stripe_utils import create_stripe_session
+from payments.stripe_utils import create_stripe_session, create_fine_payment
 
 
 class BorrowingViewSet(viewsets.ModelViewSet):
@@ -100,6 +100,15 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         book = borrowing.book
         book.inventory += 1
         book.save()
+
+        if borrowing.actual_return_date > borrowing.expected_return_date:
+            success_url = self.request.build_absolute_uri(
+                reverse("payments:payment-success")
+            )
+            cancel_url = self.request.build_absolute_uri(
+                reverse("payments:payment-cancel")
+            )
+            create_fine_payment(borrowing, success_url, cancel_url)
 
         return Response(
             {"detail": "Borrowing successfully returned."},

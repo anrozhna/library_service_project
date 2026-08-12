@@ -57,10 +57,14 @@ Django REST Framework API for managing a library's books, users, borrowings, and
 - List and detail endpoints, restricted so non-admin users only see their own payments (via the related borrowing's owner)
 - Optimized queries with `select_related` across `borrowing`, `borrowing__book`, `borrowing__user`
 
-### 💰 Stripe Integration (in progress)
+### 💰 Stripe Integration
 - Stripe Python SDK installed and configured with test-mode API keys
-- Manually verified Stripe Checkout Session creation flow (session URL, session ID, test card payment)
-- Full automation of session creation on borrowing creation is in progress (see [Roadmap](#roadmap))
+- Automatic Stripe Checkout Session created for every new borrowing, with the total price calculated from the book's daily fee and the borrowing duration
+- `Payment` record automatically created and linked to each Stripe session (`session_url`, `session_id`, amount)
+- `payments` included as a nested field in the borrowing detail response
+- `/payments/success/` endpoint marks a payment as `PAID` when Stripe redirects back after a successful checkout (idempotent — safe to call more than once)
+- `/payments/cancel/` endpoint informs the user their Stripe session remains valid for 24 hours if payment wasn't completed
+- **FINE payments**: if a book is returned after its expected return date, a second `Payment` (type `FINE`) is automatically created and a matching Stripe session generated, using a configurable `FINE_MULTIPLIER`
 
 ### 🔔 Telegram Notifications
 - Helper function to send messages to a Telegram chat via the Bot API
@@ -208,6 +212,7 @@ CELERY_BROKER_URL=redis://localhost:6379/0
 CELERY_RESULT_BACKEND=redis://localhost:6379/0
 
 STRIPE_SECRET_KEY=your-stripe-secret-key
+FINE_MULTIPLIER=2
 ```
 
 ⚠️ When running via Docker, `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND` are overridden to use `redis://redis:6379/0` inside `docker-compose.yml` (containers reference each other by service name, not `localhost`).
@@ -249,6 +254,8 @@ See `.env.sample` for the template.
 |---|---|---|---|
 | GET | `/payments/` | Authenticated | List payments (own for regular users, all for admins) |
 | GET | `/payments/<id>/` | Authenticated (owner or admin) | Get payment details |
+| GET | `/payments/success/?session_id=<id>` | Authenticated | Confirm a successful Stripe payment (marks it as `PAID`) |
+| GET | `/payments/cancel/` | Authenticated | Inform the user a Stripe session was not completed |
 
 ### Documentation
 | Method | Endpoint | Description |
@@ -369,7 +376,7 @@ Check the worker terminal for the task result, or your Telegram chat for the not
 
 ## Stripe Payments
 
-The project integrates with [Stripe](https://stripe.com) (in **test mode**) to handle borrowing payments.
+The project integrates with [Stripe](https://stripe.com) (in **test mode**) to handle borrowing payments and overdue fines.
 
 ### Setup
 
@@ -378,9 +385,29 @@ The project integrates with [Stripe](https://stripe.com) (in **test mode**) to h
 3. Add it to your `.env`:
    ```
    STRIPE_SECRET_KEY=sk_test_...
+   FINE_MULTIPLIER=2
    ```
 
-### Manually testing a Checkout Session
+### How it works
+
+- **On borrowing creation**: the total price (`daily_fee × number of days`) is calculated, a Stripe Checkout Session is created, and a `Payment` (type `PAYMENT`, status `PENDING`) is saved with the session's `url` and `id`. The session URL is available in the borrowing's detail response, under the nested `payments` field.
+- **On successful payment**: Stripe redirects the user to `/payments/success/?session_id=...`, which marks the matching `Payment` as `PAID`.
+- **On a cancelled/abandoned checkout**: Stripe redirects to `/payments/cancel/`. The session remains valid for 24 hours, so the user can complete the payment later using the same `session_url`.
+- **On an overdue return**: if a book is returned after its `expected_return_date`, a second `Payment` (type `FINE`, status `PENDING`) is created automatically, with the amount calculated as `overdue_days × daily_fee × FINE_MULTIPLIER`, along with its own Stripe Checkout Session.
+
+### Testing a payment end-to-end
+
+1. Create a borrowing via the API (`POST /borrowings/`)
+2. Retrieve its details (`GET /borrowings/<id>/`) and copy the `session_url` from the nested `payments` field
+3. Open `session_url` in your browser and pay with a Stripe test card:
+   ```
+   Card number: 4242 4242 4242 4242
+   Expiry: any future date
+   CVC: any 3 digits
+   ```
+4. You'll be redirected to `/payments/success/?session_id=...`, and the payment's status will update to `PAID`
+
+### Manually creating a raw Checkout Session (for debugging)
 
 ```bash
 python manage.py shell
@@ -408,15 +435,6 @@ session = stripe.checkout.Session.create(
 
 print(session.url)
 ```
-
-Open the printed URL in your browser and pay using a Stripe test card:
-```
-Card number: 4242 4242 4242 4242
-Expiry: any future date
-CVC: any 3 digits
-```
-
-Automatic Payment/Stripe session creation tied to borrowing creation, and dedicated success/cancel endpoints, are in progress — see [Roadmap](#roadmap).
 
 ---
 

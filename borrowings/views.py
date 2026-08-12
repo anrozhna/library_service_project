@@ -15,6 +15,7 @@ from borrowings.serializers import (
     AdminBorrowingCreateSerializer,
 )
 from borrowings.telegram_notifications import send_telegram_message
+from payments.stripe_utils import create_stripe_session
 
 
 class BorrowingViewSet(viewsets.ModelViewSet):
@@ -71,6 +72,11 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             f"Borrow date: {borrowing.borrow_date}\n"
             f"Expected return: {borrowing.expected_return_date}"
         )
+
+        success_url = self.request.build_absolute_uri("/payments/success/")
+        cancel_url = self.request.build_absolute_uri("/payments/cancel/")
+        create_stripe_session(borrowing, success_url, cancel_url)
+
         send_telegram_message(message)
 
     @action(detail=True, methods=["POST"], url_path="return")

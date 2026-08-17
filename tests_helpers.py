@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from decimal import Decimal
+from unittest.mock import MagicMock
 
 from django.contrib.auth import get_user_model
 
@@ -60,3 +61,10 @@ def sample_payment(borrowing, **params):
     }
     defaults.update(params)
     return Payment.objects.create(**defaults)
+
+
+def mock_stripe_session(payment_status="paid"):
+    """Build a MagicMock imitating a Stripe checkout.Session response."""
+    mock_session = MagicMock()
+    mock_session.payment_status = payment_status
+    return mock_session

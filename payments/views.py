@@ -1,3 +1,5 @@
+import stripe
+from django.conf import settings
 from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -6,6 +8,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from payments.models import Payment
 from payments.serializers import PaymentListSerializer, PaymentDetailSerializer
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 class PaymentViewSet(
@@ -43,7 +47,10 @@ class PaymentViewSet(
             )
 
         try:
-            payment = Payment.objects.get(session_id=session_id)
+            payment = Payment.objects.get(
+                session_id=session_id,
+                borrowing__user=request.user,
+            )
         except Payment.DoesNotExist:
             return Response(
                 {"detail": "Payment not found."},
@@ -54,6 +61,20 @@ class PaymentViewSet(
             return Response(
                 {"detail": "Payment was already confirmed."},
                 status=status.HTTP_200_OK,
+            )
+
+        try:
+            stripe_session = stripe.checkout.Session.retrieve(session_id)
+        except stripe.error.StripeError:
+            return Response(
+                {"detail": "Could not verify payment with Stripe."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        if stripe_session.payment_status != "paid":
+            return Response(
+                {"detail": "Payment has not been completed yet."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         payment.status = Payment.StatusChoices.PAID
@@ -77,7 +98,9 @@ class PaymentViewSet(
         }
 
         if session_id:
-            payment = Payment.objects.filter(session_id=session_id).first()
+            payment = Payment.objects.filter(
+                session_id=session_id, borrowing__user=request.user
+            ).first()
             if payment:
                 response_data["session_url"] = payment.session_url
 

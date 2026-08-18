@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from unittest.mock import patch
 
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -16,6 +17,14 @@ from payments.models import Payment
 
 class PendingPaymentBlockTests(APITestCase):
     def setUp(self):
+        self.telegram_patcher = patch("borrowings.views.send_telegram_message")
+        self.mock_send_telegram_message = self.telegram_patcher.start()
+        self.addCleanup(self.telegram_patcher.stop)
+
+        self.stripe_patcher = patch("borrowings.views.create_stripe_session")
+        self.mock_create_stripe_session = self.stripe_patcher.start()
+        self.addCleanup(self.stripe_patcher.stop)
+
         self.user = sample_user()
         self.client.force_authenticate(self.user)
         self.book = sample_book(inventory=3)
@@ -72,6 +81,14 @@ class PendingPaymentBlockTests(APITestCase):
 
 class AdminPendingPaymentBlockTests(APITestCase):
     def setUp(self):
+        self.telegram_patcher = patch("borrowings.views.send_telegram_message")
+        self.mock_send_telegram_message = self.telegram_patcher.start()
+        self.addCleanup(self.telegram_patcher.stop)
+
+        self.stripe_patcher = patch("borrowings.views.create_stripe_session")
+        self.mock_create_stripe_session = self.stripe_patcher.start()
+        self.addCleanup(self.stripe_patcher.stop)
+
         self.admin = sample_superuser()
         self.client.force_authenticate(self.admin)
         self.target_user = sample_user(email="target@test.com")

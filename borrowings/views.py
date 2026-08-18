@@ -2,8 +2,11 @@ from django.db import transaction
 from django.urls import reverse
 from django.utils import timezone
 
+import stripe
+
 from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import APIException
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -67,6 +70,18 @@ class BorrowingViewSet(
 
         return queryset
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        with transaction.atomic():
+            self.perform_create(serializer)
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
+
     def perform_create(self, serializer):
         if self.request.user.is_staff and serializer.validated_data.get("user"):
             borrowing = serializer.save()
@@ -77,7 +92,11 @@ class BorrowingViewSet(
             reverse("payments:payment-success")
         )
         cancel_url = self.request.build_absolute_uri(reverse("payments:payment-cancel"))
-        create_stripe_session(borrowing, success_url, cancel_url)
+
+        try:
+            create_stripe_session(borrowing, success_url, cancel_url)
+        except stripe.error.StripeError as e:
+            raise APIException(detail=f"Could not create a payment session: {e}")
 
         message = (
             f"📚 New borrowing created!\n"
@@ -98,30 +117,33 @@ class BorrowingViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        with transaction.atomic():
-            borrowing = Borrowing.objects.select_for_update().get(pk=borrowing.pk)
+        try:
+            with transaction.atomic():
+                borrowing = Borrowing.objects.select_for_update().get(pk=borrowing.pk)
 
-            if borrowing.actual_return_date is not None:
-                return Response(
-                    {"detail": "This borrowing has already been returned."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                if borrowing.actual_return_date is not None:
+                    return Response(
+                        {"detail": "This borrowing has already been returned."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
-            borrowing.actual_return_date = timezone.now().date()
-            borrowing.save()
+                borrowing.actual_return_date = timezone.now().date()
+                borrowing.save()
 
-            book = Book.objects.select_for_update().get(pk=borrowing.book_id)
-            book.inventory += 1
-            book.save()
+                book = Book.objects.select_for_update().get(pk=borrowing.book_id)
+                book.inventory += 1
+                book.save()
 
-        if borrowing.actual_return_date > borrowing.expected_return_date:
-            success_url = self.request.build_absolute_uri(
-                reverse("payments:payment-success")
-            )
-            cancel_url = self.request.build_absolute_uri(
-                reverse("payments:payment-cancel")
-            )
-            create_fine_payment(borrowing, success_url, cancel_url)
+                if borrowing.actual_return_date > borrowing.expected_return_date:
+                    success_url = self.request.build_absolute_uri(
+                        reverse("payments:payment-success")
+                    )
+                    cancel_url = self.request.build_absolute_uri(
+                        reverse("payments:payment-cancel")
+                    )
+                    create_fine_payment(borrowing, success_url, cancel_url)
+        except stripe.error.StripeError as e:
+            raise APIException(detail=f"Could not create a fine payment: {e}")
 
         return Response(
             {"detail": "Borrowing successfully returned."},

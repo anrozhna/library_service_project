@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.utils import timezone
 
 from rest_framework import serializers
 
@@ -60,6 +61,14 @@ class BorrowingCreateSerializer(serializers.ModelSerializer):
     def validate_book(value):
         if value.inventory <= 0:
             raise serializers.ValidationError("This book is out of stock.")
+        return value
+
+    @staticmethod
+    def validate_expected_return_date(value):
+        if value <= timezone.now().date():
+            raise serializers.ValidationError(
+                "Expected return date must be in the future."
+            )
         return value
 
     def validate(self, attrs):

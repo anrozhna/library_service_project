@@ -25,7 +25,8 @@ class PaymentSuccessEndpointTests(APITestCase):
 
         self.book = sample_book()
         self.borrowing = sample_borrowing(
-            self.user, self.book,
+            self.user,
+            self.book,
             expected_return_date=date.today() + timedelta(days=7),
         )
         self.payment = sample_payment(self.borrowing)
@@ -34,9 +35,7 @@ class PaymentSuccessEndpointTests(APITestCase):
     def test_success_marks_payment_as_paid_when_stripe_confirms(self, mock_retrieve):
         mock_retrieve.return_value = mock_stripe_session(payment_status="paid")
 
-        response = self.client.get(
-            SUCCESS_URL, {"session_id": self.payment.session_id}
-        )
+        response = self.client.get(SUCCESS_URL, {"session_id": self.payment.session_id})
 
         self.payment.refresh_from_db()
 
@@ -48,9 +47,7 @@ class PaymentSuccessEndpointTests(APITestCase):
     def test_success_does_not_mark_paid_when_stripe_says_unpaid(self, mock_retrieve):
         mock_retrieve.return_value = mock_stripe_session(payment_status="unpaid")
 
-        response = self.client.get(
-            SUCCESS_URL, {"session_id": self.payment.session_id}
-        )
+        response = self.client.get(SUCCESS_URL, {"session_id": self.payment.session_id})
 
         self.payment.refresh_from_db()
 
@@ -63,9 +60,7 @@ class PaymentSuccessEndpointTests(APITestCase):
 
         mock_retrieve.side_effect = stripe.error.StripeError("network error")
 
-        response = self.client.get(
-            SUCCESS_URL, {"session_id": self.payment.session_id}
-        )
+        response = self.client.get(SUCCESS_URL, {"session_id": self.payment.session_id})
 
         self.payment.refresh_from_db()
 
@@ -89,9 +84,7 @@ class PaymentSuccessEndpointTests(APITestCase):
         mock_retrieve.return_value = mock_stripe_session(payment_status="paid")
 
         self.client.get(SUCCESS_URL, {"session_id": self.payment.session_id})
-        response = self.client.get(
-            SUCCESS_URL, {"session_id": self.payment.session_id}
-        )
+        response = self.client.get(SUCCESS_URL, {"session_id": self.payment.session_id})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Stripe should only be called once — the second call short-circuits
@@ -109,7 +102,8 @@ class PaymentOwnershipTests(APITestCase):
 
         self.book = sample_book()
         self.borrowing = sample_borrowing(
-            self.owner, self.book,
+            self.owner,
+            self.book,
             expected_return_date=date.today() + timedelta(days=7),
         )
         self.payment = sample_payment(self.borrowing)
@@ -118,9 +112,7 @@ class PaymentOwnershipTests(APITestCase):
     def test_cannot_confirm_another_users_payment(self, mock_retrieve):
         mock_retrieve.return_value = mock_stripe_session(payment_status="paid")
 
-        response = self.client.get(
-            SUCCESS_URL, {"session_id": self.payment.session_id}
-        )
+        response = self.client.get(SUCCESS_URL, {"session_id": self.payment.session_id})
 
         self.payment.refresh_from_db()
 
@@ -129,9 +121,7 @@ class PaymentOwnershipTests(APITestCase):
         mock_retrieve.assert_not_called()
 
     def test_cancel_does_not_leak_another_users_session_url(self):
-        response = self.client.get(
-            CANCEL_URL, {"session_id": self.payment.session_id}
-        )
+        response = self.client.get(CANCEL_URL, {"session_id": self.payment.session_id})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertNotIn("session_url", response.data)
@@ -144,23 +134,20 @@ class PaymentCancelEndpointTests(APITestCase):
 
         self.book = sample_book()
         self.borrowing = sample_borrowing(
-            self.user, self.book,
+            self.user,
+            self.book,
             expected_return_date=date.today() + timedelta(days=7),
         )
         self.payment = sample_payment(self.borrowing)
 
     def test_cancel_returns_session_url_for_own_payment(self):
-        response = self.client.get(
-            CANCEL_URL, {"session_id": self.payment.session_id}
-        )
+        response = self.client.get(CANCEL_URL, {"session_id": self.payment.session_id})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["session_url"], self.payment.session_url)
 
     def test_cancel_does_not_change_payment_status(self):
-        response = self.client.get(
-            CANCEL_URL, {"session_id": self.payment.session_id}
-        )
+        response = self.client.get(CANCEL_URL, {"session_id": self.payment.session_id})
 
         self.payment.refresh_from_db()
 

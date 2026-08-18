@@ -6,6 +6,7 @@ from rest_framework import serializers
 from books.models import Book
 from books.serializers import BookSerializer
 from borrowings.models import Borrowing
+from payments.models import Payment
 from users.serializers import UserSerializer
 
 
@@ -60,6 +61,23 @@ class BorrowingCreateSerializer(serializers.ModelSerializer):
         if value.inventory <= 0:
             raise serializers.ValidationError("This book is out of stock.")
         return value
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        user = attrs.get("user") or (request.user if request else None)
+
+        if (
+            user
+            and Payment.objects.filter(
+                borrowing__user=user, status=Payment.StatusChoices.PENDING
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                "You have unpaid pending payments. Please complete them "
+                "before creating a new borrowing."
+            )
+
+        return attrs
 
     def create(self, validated_data):
         with transaction.atomic():

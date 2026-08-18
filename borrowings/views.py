@@ -1,12 +1,14 @@
+from django.db import transaction
 from django.urls import reverse
 from django.utils import timezone
 
-from rest_framework import viewsets, status
+from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
+from books.models import Book
 from borrowings.models import Borrowing
 from borrowings.serializers import (
     BorrowingSerializer,
@@ -19,7 +21,12 @@ from borrowings.telegram_notifications import send_telegram_message
 from payments.stripe_utils import create_stripe_session, create_fine_payment
 
 
-class BorrowingViewSet(viewsets.ModelViewSet):
+class BorrowingViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
     queryset = Borrowing.objects.select_related("book", "user")
     serializer_class = BorrowingSerializer
     authentication_classes = (JWTAuthentication,)
@@ -66,6 +73,12 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         else:
             borrowing = serializer.save(user=self.request.user)
 
+        success_url = self.request.build_absolute_uri(
+            reverse("payments:payment-success")
+        )
+        cancel_url = self.request.build_absolute_uri(reverse("payments:payment-cancel"))
+        create_stripe_session(borrowing, success_url, cancel_url)
+
         message = (
             f"📚 New borrowing created!\n"
             f"Book: {borrowing.book.title}\n"
@@ -73,13 +86,6 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             f"Borrow date: {borrowing.borrow_date}\n"
             f"Expected return: {borrowing.expected_return_date}"
         )
-
-        success_url = self.request.build_absolute_uri(
-            reverse("payments:payment-success")
-        )
-        cancel_url = self.request.build_absolute_uri(reverse("payments:payment-cancel"))
-        create_stripe_session(borrowing, success_url, cancel_url)
-
         send_telegram_message(message)
 
     @action(detail=True, methods=["POST"], url_path="return")
@@ -92,12 +98,21 @@ class BorrowingViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        borrowing.actual_return_date = timezone.now().date()
-        borrowing.save()
+        with transaction.atomic():
+            borrowing = Borrowing.objects.select_for_update().get(pk=borrowing.pk)
 
-        book = borrowing.book
-        book.inventory += 1
-        book.save()
+            if borrowing.actual_return_date is not None:
+                return Response(
+                    {"detail": "This borrowing has already been returned."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            borrowing.actual_return_date = timezone.now().date()
+            borrowing.save()
+
+            book = Book.objects.select_for_update().get(pk=borrowing.book_id)
+            book.inventory += 1
+            book.save()
 
         if borrowing.actual_return_date > borrowing.expected_return_date:
             success_url = self.request.build_absolute_uri(

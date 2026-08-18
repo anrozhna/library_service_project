@@ -1,6 +1,9 @@
 from django.contrib.auth import get_user_model
+from django.db import transaction
+
 from rest_framework import serializers
 
+from books.models import Book
 from books.serializers import BookSerializer
 from borrowings.models import Borrowing
 from users.serializers import UserSerializer
@@ -59,11 +62,19 @@ class BorrowingCreateSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        book = validated_data["book"]
-        book.inventory -= 1
-        book.save()
+        with transaction.atomic():
+            book = Book.objects.select_for_update().get(pk=validated_data["book"].pk)
 
-        return Borrowing.objects.create(**validated_data)
+            if book.inventory <= 0:
+                raise serializers.ValidationError(
+                    {"book": "This book is out of stock."}
+                )
+
+            book.inventory -= 1
+            book.save()
+
+            validated_data["book"] = book
+            return Borrowing.objects.create(**validated_data)
 
 
 class AdminBorrowingCreateSerializer(BorrowingCreateSerializer):

@@ -44,6 +44,8 @@ Django REST Framework API for managing a library's books, users, borrowings, and
 - Filtering by `user_id`, restricted to admin users
 - Create endpoint with business logic:
   - Validates that the book has available inventory before creating a borrowing
+  - Validates that `expected_return_date` is in the future
+  - Blocks creating a new borrowing while the user has an unpaid (`PENDING`) payment
   - Decreases book inventory by 1 on creation
   - Automatically attaches the current authenticated user (admins can create a borrowing on behalf of another user)
 - Return endpoint (`POST /borrowings/<id>/return/`):
@@ -81,6 +83,12 @@ Django REST Framework API for managing a library's books, users, borrowings, and
 
 ### 🐳 Docker
 - Containerized with Docker and Docker Compose (app, Redis, Celery worker, Celery beat)
+
+### 🔒 Reliability & Security
+- Payment confirmation is verified server-side against Stripe (`stripe.checkout.Session.retrieve`) rather than trusting the client-supplied `session_id` alone
+- Payment success/cancel lookups are scoped to the requesting user, preventing access to other users' payment sessions
+- Book inventory updates are race-condition-safe, using `select_for_update()` inside atomic transactions for both borrowing creation and return
+- Borrowing creation and return are wrapped in database transactions together with their Stripe session calls — if Stripe fails, the borrowing/return is rolled back instead of leaving orphaned or inconsistent records
 
 ### ✅ Code Quality
 - `black` for consistent code formatting
@@ -483,5 +491,3 @@ flake8 .           # lint for style issues
 ```
 
 CI runs `black --check .`, `flake8 .`, and the full test suite (with a coverage threshold) on every push and pull request to `main` via GitHub Actions.
-
----
